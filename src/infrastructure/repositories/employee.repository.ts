@@ -18,4 +18,13 @@ export class PrismaEmployeeRepository implements IEmployeeRepository {
     });
     return employee as Employee | null;
   }
+
+  async bindDevice(id: string, deviceCode: string): Promise<Employee> {
+    const employee = await prisma.employee.update({
+      where: { id },
+      data: { deviceCode },
+      include: { shift: true },
+    });
+    return employee as Employee;
+  }
 }

@@ -13,18 +13,18 @@ export const attendanceService = {
     return res.json();
   },
 
-  async register(document: string, type: "CHECK_IN" | "CHECK_OUT"): Promise<AttendanceDTO> {
+  async register(
+    document: string,
+    type: "CHECK_IN" | "CHECK_OUT",
+    deviceCode: string,
+  ): Promise<AttendanceDTO> {
     const res = await fetch("/api/attendance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ document, type }),
+      body: JSON.stringify({ document, type, deviceCode }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Error al registrar marcación");
     return data;
-  },
-
-  async autoClose(): Promise<void> {
-    await fetch("/api/attendance/auto-close", { method: "POST" });
   },
 };

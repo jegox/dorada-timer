@@ -5,6 +5,7 @@ import { AttendanceDomainService } from "@/domain/services/attendance.domain-ser
 export interface RegisterAttendanceDTO {
   document: string;
   type: AttendanceType;
+  deviceCode: string;
 }
 
 export class RegisterAttendanceUseCase {
@@ -17,6 +18,11 @@ export class RegisterAttendanceUseCase {
     const employee = await this.employeeRepo.findByDocument(dto.document);
     if (!employee) throw new Error("Empleado no encontrado");
     if (!employee.active) throw new Error("Empleado inactivo");
+
+    if (!employee.deviceCode) throw new Error("Dispositivo no registrado");
+    if (employee.deviceCode !== dto.deviceCode) {
+      throw new Error("Dispositivo no autorizado");
+    }
 
     const status = AttendanceDomainService.resolveStatus(
       employee.shift?.startTime ?? "08:00",

@@ -9,6 +9,7 @@ import type {
 export interface IEmployeeRepository {
   findAll(): Promise<Employee[]>;
   findByDocument(document: string): Promise<Employee | null>;
+  bindDevice(id: string, deviceCode: string): Promise<Employee>;
 }
 
 export interface IShiftRepository {

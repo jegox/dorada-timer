@@ -4,6 +4,7 @@ export interface Employee {
   fullName: string;
   position: string;
   active: boolean;
+  deviceCode?: string | null;
   shiftId: string;
   shift?: Shift;
   createdAt: Date;

@@ -22,6 +22,7 @@ model Employee {
   fullName    String
   position    String
   active      Boolean      @default(true)
+  deviceCode  String?      @unique
   shiftId     String
   shift       Shift        @relation(fields: [shiftId], references: [id])
   attendances Attendance[]

@@ -1,12 +1,14 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AttendanceDTO, EmployeeDTO } from "@/presentation/types";
 import { attendanceService } from "@/presentation/services/attendance.service";
 import { employeeService } from "@/presentation/services/employee.service";
-import { deviceCookie } from "@/shared/utils/cookies";
+import { deviceService } from "@/presentation/services/device.service";
+import { deviceStorage } from "@/shared/utils/deviceStorage";
 
 // ─── Geolocalización ─────────────────────────────────────────────────────────
-const GEO_ALLOWED = { lat: 10.9292908, lng: -74.8319638, radiusMeters: 50 };
+const GEO_RADIUS_METERS = Number(process.env.NEXT_PUBLIC_GEO_RADIUS_METERS) || 50;
+const GEO_ALLOWED = { lat: 10.9292908, lng: -74.8319638, radiusMeters: GEO_RADIUS_METERS };
 
 export type GeoStatus = "idle" | "checking" | "allowed" | "out_of_range" | "denied" | "unavailable";
 
@@ -107,7 +109,6 @@ export function useMarcaciones(): UseMarcacionesReturn {
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const autoClosedRef = useRef(false);
 
   /** Verifica la ubicación del dispositivo */
   const checkGeo = useCallback(async () => {
@@ -131,25 +132,8 @@ export function useMarcaciones(): UseMarcacionesReturn {
   }, []);
 
   // Cierre automático de turnos a las 23:59:00 (solo dispara una vez)
-  useEffect(() => {
-    const id = setInterval(() => {
-      const now = new Date();
-      if (now.getHours() === 23 && now.getMinutes() === 59 && now.getSeconds() === 0) {
-        if (!autoClosedRef.current) {
-          autoClosedRef.current = true;
-          attendanceService.autoClose().then(() => {
-            // Si el empleado de este dispositivo tenía salida pendiente, marcar done
-            setPhase((prev) => (prev === "check_out" ? "done" : prev));
-          });
-        }
-      }
-      // Resetear el flag al inicio de cada día
-      if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
-        autoClosedRef.current = false;
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
+  // Cierre automático de turnos: gestionado por un cron en el servidor
+  // (ver vercel.json → /api/attendance/auto-close).
 
   /** Carga los registros del empleado y determina la fase */
   const loadPhase = useCallback(async (doc: string) => {
@@ -157,26 +141,28 @@ export function useMarcaciones(): UseMarcacionesReturn {
     setPhase(resolvePhase(records));
   }, []);
 
-  // Arranque: verificar ubicación primero, luego leer cookie
+  // Arranque: verificar ubicación primero, luego leer el dispositivo local
   useEffect(() => {
     checkGeo().then(() => {
-      const doc = deviceCookie.get();
-      if (!doc) {
+      const doc = deviceStorage.getDocument();
+      const deviceCode = deviceStorage.getDeviceCode();
+      if (!doc || !deviceCode) {
         setPhase("setup");
         return;
       }
       employeeService
         .findByDocument(doc)
         .then((emp) => {
-          if (emp && emp.active) {
+          if (emp && emp.active && emp.deviceCode === deviceCode) {
             setEmployee(emp);
             return loadPhase(doc);
           }
-          deviceCookie.clear();
+          // El vínculo ya no es válido (empleado inactivo o código distinto)
+          deviceStorage.reset();
           setPhase("setup");
         })
         .catch(() => {
-          deviceCookie.clear();
+          deviceStorage.reset();
           setPhase("setup");
         });
     });
@@ -203,15 +189,40 @@ export function useMarcaciones(): UseMarcacionesReturn {
   /** Confirmar y bloquear el dispositivo a este empleado */
   const confirmDevice = useCallback(async () => {
     if (!setupEmployee) return;
-    deviceCookie.set(setupEmployee.document);
-    setEmployee(setupEmployee);
-    setSetupEmployee(null);
-    await loadPhase(setupEmployee.document);
+    setRegistering(true);
+    setError(null);
+    try {
+      const existingCode = deviceStorage.getDeviceCode() ?? undefined;
+      const { employee: emp, deviceCode } = await deviceService.register(
+        setupEmployee.document,
+        existingCode,
+      );
+      deviceStorage.setDeviceCode(deviceCode);
+      deviceStorage.setEmployee({
+        document: emp.document,
+        fullName: emp.fullName,
+        position: emp.position,
+        shift: emp.shift,
+      });
+      setEmployee(emp);
+      setSetupEmployee(null);
+      await loadPhase(emp.document);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error al registrar dispositivo");
+    } finally {
+      setRegistering(false);
+    }
   }, [setupEmployee, loadPhase]);
 
   /** Registrar entrada o salida — valida ubicación antes de registrar */
   const handleRegister = useCallback(async () => {
     if (!employee || (phase !== "check_in" && phase !== "check_out")) return;
+    const deviceCode = deviceStorage.getDeviceCode();
+    if (!deviceCode) {
+      deviceStorage.reset();
+      setPhase("setup");
+      return;
+    }
     setRegistering(true);
     setError(null);
     setSuccess(null);
@@ -225,6 +236,7 @@ export function useMarcaciones(): UseMarcacionesReturn {
       await attendanceService.register(
         employee.document,
         phase === "check_in" ? "CHECK_IN" : "CHECK_OUT",
+        deviceCode,
       );
       setSuccess(phase === "check_in" ? "✓ Entrada registrada" : "✓ Salida registrada");
       await loadPhase(employee.document);

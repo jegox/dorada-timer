@@ -11,6 +11,7 @@ export interface EmployeeDTO {
   fullName: string;
   position: string;
   active: boolean;
+  deviceCode?: string | null;
   shiftId: string;
   shift: ShiftDTO | null;
 }
