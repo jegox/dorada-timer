@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Shift {
+  id         String       @id @default(cuid())
+  name       String
+  startTime  String
+  endTime    String
+  employees  Employee[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Employee {
+  id          String       @id @default(cuid())
+  document    String       @unique
+  fullName    String
+  position    String
+  active      Boolean      @default(true)
+  shiftId     String
+  shift       Shift        @relation(fields: [shiftId], references: [id])
+  attendances Attendance[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  employeeId String
+  employee   Employee         @relation(fields: [employeeId], references: [id])
+  type       AttendanceType
+  status     AttendanceStatus
+  createdAt  DateTime         @default(now())
+}
+
+enum AttendanceType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum AttendanceStatus {
+  ON_TIME
+  LATE
+  EARLY
+}
