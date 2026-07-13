@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/attendance/auto-close",
-      "schedule": "59 23 * * *"
+      "schedule": "55 23 * * *"
     }
   ]
 }
