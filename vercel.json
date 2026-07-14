@@ -3,6 +3,14 @@
     {
       "path": "/api/attendance/auto-close",
       "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/payroll/run",
+      "schedule": "45 23 15 * *"
+    },
+    {
+      "path": "/api/payroll/run",
+      "schedule": "45 23 28-31 * *"
     }
   ]
 }

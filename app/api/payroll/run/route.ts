@@ -1,19 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { runPayrollLiquidation } from "@/lib/payroll-cron";
+import { runPayrollLiquidation } from "@/src/lib/payroll-cron";
 
 const Schema = z.object({
-  year:      z.number().int().min(2020).max(2100),
-  month:     z.number().int().min(0).max(11),
+  year: z.number().int().min(2020).max(2100),
+  month: z.number().int().min(0).max(11),
   fortnight: z.union([z.literal(1), z.literal(2)]),
 });
 
+function isLastDayOfMonth(date: Date): boolean {
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  return date.getDate() === lastDay;
+}
+
+function resolvePeriodFromDate(date: Date): { year: number; month: number; fortnight: 1 | 2 } {
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth(),
+    fortnight: date.getDate() <= 15 ? 1 : 2,
+  };
+}
+
+function isAuthorizedCronRequest(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return true;
+  const authHeader = req.headers.get("authorization") ?? "";
+  return authHeader === `Bearer ${secret}`;
+}
+
+async function runWithBody(req: NextRequest) {
+  const { year, month, fortnight } = Schema.parse(await req.json());
+  return runPayrollLiquidation(year, month, fortnight);
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    if (!isAuthorizedCronRequest(req)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const now = new Date();
+
+    if (now.getDate() > 15 && !isLastDayOfMonth(now)) {
+      return NextResponse.json({ skipped: true, reason: "Not last day of month" }, { status: 200 });
+    }
+
+    const { year, month, fortnight } = resolvePeriodFromDate(now);
+    const result = await runPayrollLiquidation(year, month, fortnight);
+    return NextResponse.json({ trigger: "vercel-cron", ...result }, { status: 201 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Error" },
+      { status: 400 },
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { year, month, fortnight } = Schema.parse(await req.json());
-    const result = await runPayrollLiquidation(year, month, fortnight);
-    return NextResponse.json(result, { status: 201 });
+    const result = await runWithBody(req);
+    return NextResponse.json({ trigger: "manual", ...result }, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Error" }, { status: 400 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Error" },
+      { status: 400 },
+    );
   }
 }
