@@ -1,0 +1,62 @@
+directorio: dorada-timer
+
+Crear un cronjob de vercel- Liquidar nomina
+fecha de ejecucion: todos los 15 y ultimo dia de cada mes a las 23:45
+debe buscar en la tabla EmployeeSetting las siguientes key:
+
+logica de aplicacion key AMOUNT_FDS_CHEF y AMOUNT_FDS_AUX:
+con los valores de la key se debe calcular cuantos dias sabados, domingos y festivos existen en el periodo
+de quince dias, es decir, del 1 al 15, del 16 al ultimo dia del mes.
+se debe crear un registro en la tabla pagos adicionales
+
+nota: este es el json con los festivos del año 2026
+{
+  "julio": [
+    13,
+    20
+  ],
+  "agosto": [
+    7,
+    17
+  ],
+  "septiembre": [],
+  "octubre": [
+    12
+  ],
+  "noviembre": [
+    2,
+    16
+  ],
+  "diciembre": [
+    8,
+    25
+  ]
+}
+
+logica de aplicacion key AMOUNT_SHIFT_LUNCH y AMOUNT_SHIFT_FOODS:
+
+se debe consultar en la tabla Setting y EmployeeSetting los key con los valores y se debe multiplicar 
+por los dias que tiene cada empleado en el periodo de quince dias, es decir, del 1 al 15 y
+del 16 al ultimo dia del mes, de la tabla Attendance.
+
+para la key AMOUNT_SHIFT_LUNCH si la suma de la tabla Attendance es igual a 13 dias se debe crear un 
+registro en la tabla pagos adicionales por empleado.
+
+una vez terminada la logica anterior procederas a liquidar la nomina de la siguiente manera:
+multiplicar el numero de dias trabajados con el campo value por empleado. 
+
+una vez tengas el monto de la quincena hay que hacer las deducciones y motos adicionales de pago de
+la siguiente manera:
+
+para las tablas de deducciones y motos adicionales de pago se va sumar la cantidad de dinero por periodo 
+de quince dias de cada empleado
+
+se debe consultar la suma por periodo de 15 dias del monto de los pagos adicionales por empleado 
+
+se debe consultar la suma por periodo de 15 dias del monto de las deduciones por empleado.
+
+una vez se tenga estos tres valores por empleado se procede a crear el registro en la tabla de liquidacion de nomina
+en el campo monto va el valor de los dias trabajados por el valor del shift mas el monto de los pagos adicionales
+en el campo deducciones va el valor de la suma de las deduccion de la tabla deducciones 
+
+el resto de campos ya sabes cuales valores van
