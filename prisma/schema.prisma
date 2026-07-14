@@ -1,0 +1,108 @@
+generator client {
+	provider = "prisma-client-js"
+}
+
+datasource db {
+	provider = "postgresql"
+}
+
+model Shift {
+	id        String     @id @default(cuid())
+	name      String
+	startTime String
+	endTime   String
+	employees Employee[]
+	createdAt DateTime   @default(now())
+	updatedAt DateTime   @updatedAt
+}
+
+model Employee {
+	id                  String               @id @default(cuid())
+	document            String               @unique
+	fullName            String
+	position            String
+	active              Boolean              @default(true)
+	deviceCode          String?              @unique
+	shiftId             String
+	shift               Shift                @relation(fields: [shiftId], references: [id])
+	attendances         Attendance[]
+	settings            EmployeeSetting[]
+	deductions          Deduction[]
+	additionalPayments  AdditionalPayment[]
+	payrollLiquidations PayrollLiquidation[]
+	createdAt           DateTime             @default(now())
+	updatedAt           DateTime             @updatedAt
+}
+
+model Attendance {
+	id         String           @id @default(cuid())
+	employeeId String
+	employee   Employee         @relation(fields: [employeeId], references: [id])
+	type       AttendanceType
+	status     AttendanceStatus
+	createdAt  DateTime         @default(now())
+}
+
+enum AttendanceType {
+	CHECK_IN
+	CHECK_OUT
+}
+
+enum AttendanceStatus {
+	ON_TIME
+	LATE
+	EARLY
+}
+
+model Setting {
+	id        String            @id @default(cuid())
+	key       String
+	value     String
+	active    Boolean           @default(true)
+	employees EmployeeSetting[]
+	createdAt DateTime          @default(now())
+	updatedAt DateTime          @updatedAt
+}
+
+model EmployeeSetting {
+	id         String   @id @default(cuid())
+	settingId  String
+	employeeId String
+	setting    Setting  @relation(fields: [settingId], references: [id], onDelete: Cascade)
+	employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+	createdAt  DateTime @default(now())
+
+	@@unique([settingId, employeeId])
+}
+
+model Deduction {
+	id         String   @id @default(cuid())
+	employeeId String
+	employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+	amount     Decimal  @db.Decimal(12, 2)
+	date       DateTime
+	concept    String
+	createdAt  DateTime @default(now())
+}
+
+model AdditionalPayment {
+	id         String   @id @default(cuid())
+	employeeId String
+	employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+	amount     Decimal  @db.Decimal(12, 2)
+	date       DateTime
+	concept    String
+	createdAt  DateTime @default(now())
+}
+
+model PayrollLiquidation {
+	id         String   @id @default(cuid())
+	period     String
+	startDate  DateTime
+	endDate    DateTime
+	employeeId String
+	employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+	deductions Decimal  @default(0) @db.Decimal(12, 2)
+	amount     Decimal  @default(0) @db.Decimal(12, 2)
+	createdAt  DateTime @default(now())
+}
