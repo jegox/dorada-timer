@@ -1,5 +1,5 @@
 "use client";
-import { Card, CardContent, Button, Spinner } from "@heroui/react";
+import { Button, Spinner } from "@heroui/react";
 import {
   Search,
   LogIn,
@@ -97,13 +97,17 @@ function SetupScreen({
 }) {
   const geoAllowed = geoStatus === "allowed";
   return (
-    <div className='flex flex-col items-center justify-center h-full'>
-      <Card className='w-full max-w-md shadow-md border rounded-xl'>
-        <CardContent className='space-y-5 p-8'>
+    <div className='flex flex-col items-center justify-center min-h-full py-8'>
+      <div className='w-full max-w-md space-y-6'>
+        {/* Logo Dorada Foods */}
+        <div className='flex justify-center'>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src='/dorada-logo.png' alt='Dorada Foods' className='h-24 w-auto' />
+        </div>
+
+        {/* Formulario */}
+        <div className='space-y-5'>
           <div className='flex flex-col items-center gap-2 text-center'>
-            <div className='w-12 h-12 rounded-xl bg-primary flex items-center justify-center'>
-              <Lock className='w-6 h-6 text-primary-foreground' />
-            </div>
             <h2 className='text-lg font-bold'>Configurar dispositivo</h2>
             <p className='text-sm text-default-500'>
               Este terminal se asociará permanentemente a tu cuenta. Ingresa tu número de documento
@@ -162,8 +166,8 @@ function SetupScreen({
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -197,9 +201,16 @@ function ActiveScreen({
   const geoAllowed = geoStatus === "allowed";
 
   return (
-    <div className='flex flex-col items-center justify-center h-full'>
-      <Card className='w-full max-w-md shadow-md border rounded-xl'>
-        <CardContent className='p-8 space-y-6'>
+    <div className='flex flex-col items-center justify-center min-h-full py-8'>
+      <div className='w-full max-w-md space-y-6'>
+        {/* Logo Dorada Foods */}
+        <div className='flex justify-center'>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src='/dorada-logo.png' alt='Dorada Foods' className='h-24 w-auto' />
+        </div>
+
+        {/* Formulario */}
+        <div className='space-y-6'>
           {/* Empleado */}
           <div className='flex flex-col items-center gap-2 text-center'>
             <div
@@ -275,8 +286,8 @@ function ActiveScreen({
             <Lock className='w-3 h-3' />
             <p className='text-xs'>Dispositivo bloqueado a esta cuenta</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
