@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/attendance/auto-close",
-      "schedule": "30 18 * * *"
+      "schedule": "50 0 * * *"
     },
     {
       "path": "/api/payroll/run",
-      "schedule": "45 23 28-31 * *"
+      "schedule": "45 4 1,16 * *"
     }
   ]
 }

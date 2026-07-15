@@ -13,6 +13,26 @@ function isLastDayOfMonth(date: Date): boolean {
   return date.getDate() === lastDay;
 }
 
+function getBogotaDateParts(date: Date): { year: number; month: number; day: number } {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((part) => part.type === "year")?.value ?? "0");
+  const month = Number(parts.find((part) => part.type === "month")?.value ?? "0");
+  const day = Number(parts.find((part) => part.type === "day")?.value ?? "0");
+  return { year, month, day };
+}
+
+function isLastDayOfMonthParts(parts: { year: number; month: number; day: number }): boolean {
+  const lastDay = new Date(parts.year, parts.month, 0).getDate();
+  return parts.day === lastDay;
+}
+
 function resolvePeriodFromDate(date: Date): { year: number; month: number; fortnight: 1 | 2 } {
   return {
     year: date.getFullYear(),
@@ -40,12 +60,14 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
+    const bogota = getBogotaDateParts(now);
 
-    if (now.getDate() > 15 && !isLastDayOfMonth(now)) {
+    if (bogota.day > 15 && !isLastDayOfMonthParts(bogota)) {
       return NextResponse.json({ skipped: true, reason: "Not last day of month" }, { status: 200 });
     }
 
-    const { year, month, fortnight } = resolvePeriodFromDate(now);
+    const bogotaDate = new Date(Date.UTC(bogota.year, bogota.month - 1, bogota.day, 12, 0, 0));
+    const { year, month, fortnight } = resolvePeriodFromDate(bogotaDate);
     const result = await runPayrollLiquidation(year, month, fortnight);
     return NextResponse.json({ trigger: "vercel-cron", ...result }, { status: 201 });
   } catch (error: unknown) {
